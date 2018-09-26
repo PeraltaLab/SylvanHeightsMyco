@@ -87,13 +87,35 @@ J <- shannon/log(specnumber(SH.r[,-c(1:1)]))
 
 #combined richness, diversity, evenness
 diversity <- cbind(design,richness,shannon,simp.even,J)
+
+# Graphing Richness
+p <- ggplot(diversity, aes(x=Location, y=richness, color=as.factor(Location)))+ scale_color_manual(name="Location", values=c("black","purple", "gray", "blue")) + stat_summary(fun.data=mean_cl_boot,size=0.75) 
+p1=p+geom_smooth(method="lm")+facet_wrap(~Transect)+facet_grid(. ~ Transect, labeller=labeller(Date2 = labels))
+p1 + theme_bw() + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +theme(axis.title=element_text(vjust=1,size=16,face="bold"), axis.text=element_text(size=14), axis.text.x = element_text(angle = 20, vjust=0.95, hjust=0.55, size=12), panel.border = element_rect(colour = "black",size=1)) + theme(axis.ticks.length=unit(0.3,"cm")) + labs(x = "Location", y = "Richness") + theme(strip.text.x = element_text(size=16, face="bold"), strip.text.y = element_text(size=16, face="bold"), strip.background = element_rect(colour="black", fill="white", size=1))
+  
+ggsave("../figures/richness.pdf", plot=last_plot(), device=NULL, path=NULL, scale=1, width=NA, height=NA, dpi=300, limitsize=TRUE)
+
+# Graphing Shannon Diversity
+p <- ggplot(diversity, aes(x=Location, y=shannon, color=as.factor(Location)))+ scale_color_manual(name="Location", values=c("black","purple", "gray", "blue")) + stat_summary(fun.data=mean_cl_boot,size=0.75) 
+p1=p+geom_smooth(method="lm")+facet_wrap(~Transect)+facet_grid(. ~ Transect, labeller=labeller(Date2 = labels))
+p1 + theme_bw() + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +theme(axis.title=element_text(vjust=1,size=16,face="bold"), axis.text=element_text(size=14), axis.text.x = element_text(angle = 20, vjust=0.95, hjust=0.55, size=12), panel.border = element_rect(colour = "black",size=1)) + theme(axis.ticks.length=unit(0.3,"cm")) + labs(x = "Location", y = "Shannon Diversity Index (H')") + theme(strip.text.x = element_text(size=16, face="bold"), strip.text.y = element_text(size=16, face="bold"), strip.background = element_rect(colour="black", fill="white", size=1))
+  
+ggsave("../figures/shannon.pdf", plot=last_plot(), device=NULL, path=NULL, scale=1, width=NA, height=NA, dpi=300, limitsize=TRUE)
+
+# Graphing Evenness
+p <- ggplot(diversity, aes(x=Location, y=J, color=as.factor(Location)))+ scale_color_manual(name="Location", values=c("black","purple", "gray", "blue")) + stat_summary(fun.data=mean_cl_boot,size=0.75) 
+p1=p+geom_smooth(method="lm")+facet_wrap(~Transect)+facet_grid(. ~ Transect, labeller=labeller(Date2 = labels))
+p1 + theme_bw() + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +theme(axis.title=element_text(vjust=1,size=16,face="bold"), axis.text=element_text(size=14), axis.text.x = element_text(angle = 20, vjust=0.95, hjust=0.55, size=12), panel.border = element_rect(colour = "black",size=1)) + theme(axis.ticks.length=unit(0.3,"cm")) + labs(x = "Location", y = "Pielou's Evenness (J')") + theme(strip.text.x = element_text(size=16, face="bold"), strip.text.y = element_text(size=16, face="bold"), strip.background = element_rect(colour="black", fill="white", size=1))
+  
+ggsave("../figures/evenness.pdf", plot=last_plot(), device=NULL, path=NULL, scale=1, width=NA, height=NA, dpi=300, limitsize=TRUE)
+
 ```
 
 # Simple Hypothesis Testing - Microbes
 ```{r perMANOVA - Bacteria - , echo=TRUE}
 #PERMANOVA 
 new.data <-cbind(design,dataREL)
-adonis = adonis(new.data[,-c(1:6)]~Transect*Location, method = "bray", data = new.data, perm=1000)
+adonis = adonis(new.data[,-c(1:7)]~Transect*Location, method = "bray", data = new.data, perm=1000)
 adonis
 ```
 # Microbial Ordinations
@@ -146,7 +168,7 @@ theme(panel.background = element_blank()) +
                     values = c("#33CCFF", "#CCCCCC","#336600")) + 
   scale_fill_manual(labels = c("SA","SOURCE", "WWWD"), 
                     values = c("#33CCFF", "#CCCCCC","#336600"))  + 
-  scale_shape_manual(labels = c("bird","exit","pre","source"),
+  scale_shape_manual(labels = c("pre","bird","exit","source"),
                     values = c(21, 24, 22, 25)) + 
   geom_errorbarh(aes(xmax=V1+V1e, xmin=V1-V1e, height=0.01), colour="black") +    
   geom_errorbar(aes(ymax=V2+V2e, ymin=V2-V2e, width=0.01), colour="black") +
@@ -157,7 +179,6 @@ theme(panel.background = element_blank()) +
   xlab("PCoA 1 (30.2%)") + ylab("PCoA 2 (21.6%)") + 
   labs(fill = "Location", shape = "Transect") +
   guides(fill = guide_legend(override.aes = list(pch=21, size = 4, colour="black")))
-         #shape = guide_legend(override.aes = list(size = 4, fill="black")))
 ggsave("../figures/16SrRNA_SH.pdf", plot=last_plot(), device=NULL, path=NULL, scale=1, width=NA, height=NA, dpi=900, limitsize=TRUE)
 
 ```
