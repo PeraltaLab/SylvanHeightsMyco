@@ -31,12 +31,16 @@ require("ade4")
 require("tidyr")
 require("reshape2")
 require("picante")
+require("dplyr")
 ```
 #Import Files
 ## Environmental Data
 ```{r Import Files - Env, include=FALSE}
 # Import Environmental Data
-design <- read.csv("../data/SH_design.csv", header=TRUE)
+design <- read.csv("../data/SH_design.csv", row.names=1)
+design$Location <- as.factor(design$Location)
+design$Transect <- as.factor(design$Transect)
+design$Location_ID <- as.factor(design$Location_ID)
 ```
 
 
@@ -46,7 +50,7 @@ design <- read.csv("../data/SH_design.csv", header=TRUE)
 # Import Raw Data
 otu.in <- read.otu("../data/SH.opti_mcc.shared")
 
-# Remove OTUs with less than two occurences across all sites
+# Remove OTUs with less than two occurrences across all sites
 otus <- otu.in[, which(colSums(otu.in) >= 2)]
 
 # Make Presence Absence Matrix
@@ -88,40 +92,72 @@ J <- shannon/log(specnumber(SH.r[,-c(1:1)]))
 #combined richness, diversity, evenness
 diversity <- cbind(design,richness,shannon,simp.even,J)
 
-# Graphing Richness
-p <- ggplot(diversity, aes(x=Location, y=richness, color=as.factor(Location)))+ scale_color_manual(name="Location", values=c("black","purple", "gray", "blue")) + stat_summary(fun.data=mean_cl_boot,size=0.75) 
-p1=p+geom_smooth(method="lm")+facet_wrap(~Transect)+facet_grid(. ~ Transect, labeller=labeller(Date2 = labels))
-p1 + theme_bw() + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +theme(axis.title=element_text(vjust=1,size=16,face="bold"), axis.text=element_text(size=14), axis.text.x = element_text(angle = 20, vjust=0.95, hjust=0.55, size=12), panel.border = element_rect(colour = "black",size=1)) + theme(axis.ticks.length=unit(0.3,"cm")) + labs(x = "Location", y = "Richness") + theme(strip.text.x = element_text(size=16, face="bold"), strip.text.y = element_text(size=16, face="bold"), strip.background = element_rect(colour="black", fill="white", size=1))
-  
-ggsave("../figures/richness.pdf", plot=last_plot(), device=NULL, path=NULL, scale=1, width=NA, height=NA, dpi=300, limitsize=TRUE)
+diversity$Transect <- as.factor(diversity$Transect)
+diversity$Location <- as.factor(diversity$Location)
+diversity$Location_ID <- as.factor(diversity$Location_ID)
+diversity$Location_ID_order <- as.factor(diversity$Location_ID_order)
+str(diversity)
+
+diversity.nosource <- diversity[c(1:16),]
 
 # Graphing Shannon Diversity
-p <- ggplot(diversity, aes(x=Location, y=shannon, color=as.factor(Location)))+ scale_color_manual(name="Location", values=c("black","purple", "gray", "blue")) + stat_summary(fun.data=mean_cl_boot,size=0.75) 
-p1=p+geom_smooth(method="lm")+facet_wrap(~Transect)+facet_grid(. ~ Transect, labeller=labeller(Date2 = labels))
-p1 + theme_bw() + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +theme(axis.title=element_text(vjust=1,size=16,face="bold"), axis.text=element_text(size=14), axis.text.x = element_text(angle = 20, vjust=0.95, hjust=0.55, size=12), panel.border = element_rect(colour = "black",size=1)) + theme(axis.ticks.length=unit(0.3,"cm")) + labs(x = "Location", y = "Shannon Diversity Index (H')") + theme(strip.text.x = element_text(size=16, face="bold"), strip.text.y = element_text(size=16, face="bold"), strip.background = element_rect(colour="black", fill="white", size=1))
-  
-ggsave("../figures/shannon.pdf", plot=last_plot(), device=NULL, path=NULL, scale=1, width=NA, height=NA, dpi=300, limitsize=TRUE)
+p <- ggplot(diversity.nosource, aes(x=Transect, y=shannon, color=Location))+ geom_boxplot() +
+      geom_point(aes(color=Location), size=2, position = position_jitterdodge())+ scale_color_manual(name="Location", values=c("gray70", "blue")) 
+p1=p+geom_smooth(method="lm")+facet_wrap(~Location)
+shannon<-p1 + theme_bw() + 
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.line 
+          =element_line(colour = "black")) + 
+    theme(axis.title=element_text(vjust=1,size=14,face="bold"),
+          axis.text=element_text(size=14), axis.text.x = element_text(vjust=0.65, hjust=0.5, 
+          size=14), panel.border = element_rect(colour = "black",size=1)) + 
+    theme(axis.ticks.length=unit(0.3,"cm")) + labs(x = "Transect", y = "Shannon Diversity Index (H')") + 
+    theme(strip.text.x = element_text(size=14, face="bold"), strip.text.y =   
+          element_text(size=14, face="bold"), strip.background = element_rect(colour="black",
+          fill="white", size=1))
+shannon
+ggsave("../figures/SH.bacteria.shannon.png", plot=last_plot(), device=NULL, path=NULL, scale=1, width=7, height=5, dpi=300, limitsize=TRUE)
+
+# shannon anova
+shannon.lm <- lm(shannon ~ Location*Transect, data = diversity.nosource)
+summary(shannon.lm) #NS
+
+require("emmeans")
+anova(shannon.lm)
 
 # Graphing Evenness
-p <- ggplot(diversity, aes(x=Location, y=J, color=as.factor(Location)))+ scale_color_manual(name="Location", values=c("black","purple", "gray", "blue")) + stat_summary(fun.data=mean_cl_boot,size=0.75) 
-p1=p+geom_smooth(method="lm")+facet_wrap(~Transect)+facet_grid(. ~ Transect, labeller=labeller(Date2 = labels))
-p1 + theme_bw() + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +theme(axis.title=element_text(vjust=1,size=16,face="bold"), axis.text=element_text(size=14), axis.text.x = element_text(angle = 20, vjust=0.95, hjust=0.55, size=12), panel.border = element_rect(colour = "black",size=1)) + theme(axis.ticks.length=unit(0.3,"cm")) + labs(x = "Location", y = "Pielou's Evenness (J')") + theme(strip.text.x = element_text(size=16, face="bold"), strip.text.y = element_text(size=16, face="bold"), strip.background = element_rect(colour="black", fill="white", size=1))
-  
-ggsave("../figures/evenness.pdf", plot=last_plot(), device=NULL, path=NULL, scale=1, width=NA, height=NA, dpi=300, limitsize=TRUE)
+p <- ggplot(diversity.nosource, aes(x=Transect, y=simp.even, color=Location))+ geom_boxplot() +
+      geom_point(aes(color=Location), size=2, position = position_jitterdodge())+ scale_color_manual(name="Location", values=c("gray70", "blue")) 
+p1=p+geom_smooth(method="lm")+facet_wrap(~Location)
+even<-p1 + theme_bw() + 
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.line 
+          =element_line(colour = "black")) + 
+    theme(axis.title=element_text(vjust=1,size=14,face="bold"),
+          axis.text=element_text(size=14), axis.text.x = element_text(vjust=0.65, hjust=0.5, 
+          size=14), panel.border = element_rect(colour = "black",size=1)) + 
+    theme(axis.ticks.length=unit(0.3,"cm")) + labs(x = "Transect", y = "Simpson's Evenness") + 
+    theme(strip.text.x = element_text(size=14, face="bold"), strip.text.y =   
+          element_text(size=14, face="bold"), strip.background = element_rect(colour="black",
+          fill="white", size=1))
+even
+ggsave("../figures/SH.bacteria.evenness.png", plot=last_plot(), device=NULL, path=NULL, scale=1, width=7, height=5, dpi=300, limitsize=TRUE)
 
+# evenness anova
+even.lm <- lm(simp.even ~ Location*Transect, data = diversity.nosource)
+summary(even.lm) #NS
+anova(shannon.lm)
 ```
 
 # Simple Hypothesis Testing - Microbes
 ```{r perMANOVA - Bacteria - , echo=TRUE}
 #PERMANOVA 
 new.data <-cbind(design,dataREL)
-adonis = adonis(new.data[,-c(1:7)]~Transect*Location, method = "bray", data = new.data, perm=1000)
+adonis = adonis2(new.data[,-c(1:7)]~Transect*Location, method = "bray", data = new.data, perm=1000)
 adonis
 ```
 # Microbial Ordinations
 
 ## Principal Coordinates Ordination
-```{r Ordination (PCoA) - Bacteria - all years, include=FALSE}
+```{r Ordination (PCoA) - Bacteria - all years, echo=TRUE}
 # Principal Coordinates Analysis
 dataREL.dist <- vegdist(dataREL, method="bray")
 
@@ -137,7 +173,7 @@ explainvar1b #30.2
 explainvar2b #21.6
 ```
 
-```{r Ordination (PCoA) - Bacteria -, include=FALSE}
+```{r Ordination (PCoA) - Bacteria -, echo=TRUE}
 pcoa.groups <- paste(new.data$Location, new.data$Transect, sep = "_")
 pcoa.points <- data.frame(pcoa$points, group = pcoa.groups)
 
@@ -150,98 +186,177 @@ pcoa.centroids.sd <- acast(pcoa.L.centroids, variable ~ group, sd)
 # Combine
 pcoa.cent.dataframe <- cbind(t(pcoa.centroids), t(pcoa.centroids.se))
 colnames(pcoa.cent.dataframe) <- c("V1", "V2", "V1e", "V2e")
-pcoa.cent.treats <- rownames(pcoa.cent.dataframe)
+pcoa.cent.trts <- rownames(pcoa.cent.dataframe)
+pcoa.cent.dataframe.trts <- as.data.frame(pcoa.cent.dataframe)
+dim(pcoa.cent.dataframe.trts)
 
-pcoa.col <- as.factor(sapply(strsplit(pcoa.cent.treats, "_"), `[`, 2)) # Transect
-pcoa.shape <- as.factor(sapply(strsplit(pcoa.cent.treats, "_"), `[`, 1))  # Location
+#pcoa.col <- as.factor(sapply(strsplit(pcoa.cent.treats, "_"), `[`, 2)) # Transect
+#pcoa.shape <- as.factor(sapply(strsplit(pcoa.cent.treats, "_"), `[`, 1))  # Location
+
+Location <- c("1SA", "1SA", "1SA","3SOURCE","2WWWD", "2WWWD", "2WWWD")
+Transect <- c("1PRE", "2MID", "3EXIT","SOURCE","1PRE", "2MID", "3EXIT")
+
+pcoa.cent.dataframe.trts$Location <- as.factor(Location)
+pcoa.cent.dataframe.trts$Transect <- as.factor(Transect)
+dim(pcoa.cent.dataframe.trts) #28 7
 
 # Principal Coordinates Analysis 
-df1a <- as.data.frame(pcoa.cent.dataframe)
-plot1a <- ggplot(df1a, aes(x=V1, y=V2, colour=pcoa.col, shape = pcoa.shape,
-                 group = interaction(pcoa.col, pcoa.shape))) + theme_bw() 
-plot1a + theme(panel.grid.major = element_blank(), 
-               panel.grid.minor = element_blank(), 
-               axis.line = element_line(colour = "black")) + 
-theme(panel.background = element_blank()) + 
-  geom_point(aes(fill=pcoa.col), colour = "black", size=5, stroke = 0.75) + 
-  scale_colour_manual(labels = c("SA","SOURCE", "WWWD"), 
-                    values = c("#33CCFF", "#CCCCCC","#336600")) + 
-  scale_fill_manual(labels = c("SA","SOURCE", "WWWD"), 
-                    values = c("#33CCFF", "#CCCCCC","#336600"))  + 
-  scale_shape_manual(labels = c("pre","bird","exit","source"),
-                    values = c(21, 24, 22, 25)) + 
-  geom_errorbarh(aes(xmax=V1+V1e, xmin=V1-V1e, height=0.01), colour="black") +    
-  geom_errorbar(aes(ymax=V2+V2e, ymin=V2-V2e, width=0.01), colour="black") +
-  theme(axis.title = element_text(size=18), axis.text=element_text(size=14), 
-          axis.text.x = element_text(size=14), 
-          panel.border = element_rect(colour = "black", size=1.25)) + 
-  theme(axis.ticks.length=unit(0.3,"cm")) + 
-  xlab("PCoA 1 (30.2%)") + ylab("PCoA 2 (21.6%)") + 
-  labs(fill = "Location", shape = "Transect") +
-  guides(fill = guide_legend(override.aes = list(pch=21, size = 4, colour="black")))
-ggsave("../figures/16SrRNA_SH.pdf", plot=last_plot(), device=NULL, path=NULL, scale=1, width=NA, height=NA, dpi=900, limitsize=TRUE)
+#Plot
+df1a <- as.data.frame(pcoa.cent.dataframe.trts)
+SH.bact <- ggplot(df1a, aes(x=V1, y=V2), group = interaction(Location,Transect))+
+theme_bw() + 
+#Set error bars for geom_point
+geom_errorbarh(aes(xmax=V1+V1e, xmin=V1-V1e, height=0.02), colour="black") + 
+geom_errorbar(aes(ymax=V2+V2e, ymin=V2-V2e, width=0.02), colour="black") +
+geom_point(aes(shape = Transect, colour = Location), stroke = 2, size=2) +
+#removes gridlines from plot
+theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+axis.line = element_line(colour = "black"))+
+#Set colors for treatments
+scale_colour_manual(labels = c("SA","WWWD","SOURCE"),
+                    values = c("gray70","blue", "black")) +
+theme(axis.title = element_text(size=12),# face="bold"),
+axis.text.x = element_text(size=14, color="black"),  axis.text.y = element_text(size=14, color="black"),
+panel.border = element_rect(colour = "black", size=1.25)) +
+#Set plot title text size
+theme(plot.title=element_text(size=12)) +
+#Set legend text size
+theme(legend.text=element_text(size=10, face="bold"), legend.title = element_text(size=10, face="bold")) +
+#Sets size of tick marks on axis
+theme(axis.ticks.length=unit(0.3,"cm")) +
+#Sets labels for plot title, axis titles, and legend headings
+xlab("PCoA 1 (30.2%)") + ylab("PCoA 2 (21.6%)")
+
+SH.bact
+
+ggsave("../figures/SH.bact.ordination.png", plot=last_plot(), device=NULL, path=NULL, scale=1, width=7, height=5, dpi=300, limitsize=TRUE)
 
 ```
 
+```{r stacked bar graphs, echo=TRUE}
+require(phyloseq)
+SH_16s <- import_mothur(mothur_shared_file = "../data/SH.opti_mcc.shared", mothur_constaxonomy_file = "../data/SH.opti_mcc.0.03.cons.taxonomy")
+SH_16s
+
+design$Location <- as.factor(design$Location)
+design$Transect <- as.factor(design$Transect)
+design$Location_ID <- as.factor(design$Location_ID)
+str(design)
+
+sample <- sample_data(design)
+
+sample_data(SH_16s)<- sample
+
+colnames(tax_table(SH_16s))
+
+colnames(tax_table(SH_16s)) <- c("Kingdom", "Phylum", "Class", 
+  "Order", "Family", "Genus")
+
+after_remove_low_depth <- prune_samples(sample_sums(SH_16s) >= 6000, SH_16s)
+head(sample_sums(after_remove_low_depth))
+
+set.seed(1)
+rare <- rarefy_even_depth(after_remove_low_depth, sample.size = 8000,rngseed=TRUE)
+#2633OTUs were removed because they are no longer present in any sample after random subsampling
+
+head(sample_sums(rare))
+
+#remove the NTC sample. Check to make sure it doesn't have too many sequences before you through it away though!
+#to_remove <- c("NTC")
+#pruned <- prune_samples(!(rownames(sample_data(rare)) %in% to_remove), rare)
+
+#filter out OTUs less than 10
+#darte_ed_16s_filter <- filter_taxa(pruned, function(x) sum(x) > 10, TRUE)
+
+ #relative abundance
+SH_16s_filter_re <- transform_sample_counts(rare, function(x) x /sum(x))
+
+#Get rid of small taxa
+SH_16s_filter2 <- filter_taxa(SH_16s_filter_re, function(x) sum(x) > .001, TRUE)
+
+#Combine OTUs with common taxa
+SH_16s_filter_re_g = tax_glom(SH_16s_filter2, "Phylum")
+SH_16s_filter_re_g2 = tax_glom(SH_16s_filter2, "Genus")
+
+
+SH_genus <- SH_16s %>%
+  tax_glom(taxrank = "Genus") %>%                     # agglomerate at phylum level
+  transform_sample_counts(function(x) {x/sum(x)} ) %>% # Transform to rel. abundance
+  psmelt() %>%                                         # Melt to long format
+  filter(Abundance > 0.05) %>%                         # Filter out low abundance taxa
+  arrange(Genus)                                      # Sort data frame alphabetically by phylum
+# Set colors for plotting
+genus_colors <- c(
+  "salmon", "darkseagreen", "gold", "magenta", "slateblue", "bisque", "darkred", "cadetblue", "darkorange", "royalblue1", "orchid4", "seagreen", "thistle1", "skyblue1", "darkslateblue", "deeppink", "goldenrod2", "plum2", "antiquewhite", "aquamarine", "blue", "burlywood4", "cornflowerblue", "coral", "darkgray", "darkgreen", "darkorchid", "darksalmon", "firebrick1", "dimgray", "firebrick4", "darkseagreen1", "burlywood", "lavender", "lightcoral", "lightblue1" 
+)
+
+
+# Plot 
+a <- list(
+  font = list(size = 14),
+  xref = "paper",
+  yref = "paper",
+  yanchor = "bottom",
+  xanchor = "center",
+  align = "center",
+  x = 0.5,
+  y = 1,
+  showarrow = FALSE)
+
+SH_genus_v2 <- subset(SH_genus, Location == "SA" | Location == "WWWD")
+
+ggplot(transform(SH_genus_v2, Transect=factor(Transect, levels=c("1PRE","2MID","3EXIT"))), aes(x = Transect, y = Abundance, fill = Genus), annotations=a) + facet_grid(Location~.) +
+  geom_bar(stat = "identity") +
+  #scale_fill_manual(values = genus_colors) +
+  scale_x_discrete(labels = c("PRE","MID","EXIT"), drop = TRUE) +
+  # Remove x axis title
+  theme(axis.title.x = element_blank()) + 
+  #
+  guides(fill = guide_legend(reverse = TRUE, keywidth = 1, keyheight = 1)) +
+  ylab("Relative Abundance (Genus > 5%)") +
+  ggtitle("Genus Composition of Aquatic Bacterial Communities") 
+
+ggsave("../figures/genuscomp_updated.png", plot=last_plot(), device=NULL, path=NULL, scale=1, width=7, height=5, dpi=300, limitsize=TRUE)
+```
 # OTU graph
-```{r Myco graph, include=FALSE}
+```{r Myco graph, echo=TRUE}
 #NOTE: 
 #Otu0113 (451 reads)
 #Otu1461 (12 reads)
 #Otu2496 (6 reads)
 #Otu3114 (4 reads)
 
-p <- ggplot(new.data, aes(x=Transect, y=Otu0113, shape=as.factor(Location), color=as.factor(Transect), fill=as.factor(Transect))) + stat_summary(fun.data=mean_cl_boot,size=0.75) + scale_shape_manual(name="Location", values=c(21, 24, 22, 23)) +scale_color_manual(name="Transect", values=c("#33CCFF", "#CCCCCC","#336600"), labels = c("SA","SOURCE","WWWD")) +scale_fill_manual(name="Transect", values=c("#33CCFF", "#CCCCCC","#336600"), labels = c("SA","SOURCE","WWWD"))   
-
-p + theme_bw() + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.line =element_line(colour = "black")) + 
+#not graphing source
+new.data.nosource <- new.data[c(1:16),]
+p <- ggplot(new.data.nosource, aes(x=Transect, y=Otu0113, color=Location))+ geom_boxplot() +
+      geom_point(aes(color=Location), size=2, position = position_jitterdodge())+ scale_color_manual(name="Location", values=c("gray70", "blue")) 
+p1=p+geom_smooth(method="lm")+facet_wrap(~Location)
+Otu0113<-p1 + theme_bw() + 
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.line 
+          =element_line(colour = "black")) + 
     theme(axis.title=element_text(vjust=1,size=14,face="bold"),
-          axis.text=element_text(size=14), axis.text.x = element_text(vjust=0.75, 
-          hjust=0.6, size=14), panel.border = element_rect(colour = "black",size=1)) + 
-    theme(axis.ticks.length=unit(0.3,"cm")) + labs(x = "Transect", y = "Rel. Abun. Mycobacteria OTU0113") 
-  
-ggsave("../figures/OTU0113.pdf", plot=last_plot(), device=NULL, path=NULL, scale=1, width=NA, height=NA, dpi=300, limitsize=TRUE)
-
-p <- ggplot(new.data, aes(x=Transect, y=Otu1461, shape=as.factor(Location), color=as.factor(Transect), fill=as.factor(Transect))) + stat_summary(fun.data=mean_cl_boot,size=0.75) + scale_shape_manual(name="Location", values=c(21, 24, 22, 23)) +scale_color_manual(name="Transect", values=c("#33CCFF", "#CCCCCC","#336600"), labels = c("SA","SOURCE","WWWD")) +scale_fill_manual(name="Transect", values=c("#33CCFF", "#CCCCCC","#336600"), labels = c("SA","SOURCE","WWWD"))   
-
-p + theme_bw() + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.line =element_line(colour = "black")) + 
-    theme(axis.title=element_text(vjust=1,size=14,face="bold"),
-          axis.text=element_text(size=14), axis.text.x = element_text(vjust=0.75, 
-          hjust=0.6, size=14), panel.border = element_rect(colour = "black",size=1)) + 
-    theme(axis.ticks.length=unit(0.3,"cm")) + labs(x = "Transect", y = "Rel. Abun. Mycobacteria OTU1461") 
-  
-ggsave("../figures/OTU1461.pdf", plot=last_plot(), device=NULL, path=NULL, scale=1, width=NA, height=NA, dpi=300, limitsize=TRUE)
-
-p <- ggplot(new.data, aes(x=Transect, y=Otu2496, shape=as.factor(Location), color=as.factor(Transect), fill=as.factor(Transect))) + stat_summary(fun.data=mean_cl_boot,size=0.75) + scale_shape_manual(name="Location", values=c(21, 24, 22, 23)) +scale_color_manual(name="Transect", values=c("#33CCFF", "#CCCCCC","#336600"), labels = c("SA","SOURCE","WWWD")) +scale_fill_manual(name="Transect", values=c("#33CCFF", "#CCCCCC","#336600"), labels = c("SA","SOURCE","WWWD"))   
-
-p + theme_bw() + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.line =element_line(colour = "black")) + 
-    theme(axis.title=element_text(vjust=1,size=14,face="bold"),
-          axis.text=element_text(size=14), axis.text.x = element_text(vjust=0.75, 
-          hjust=0.6, size=14), panel.border = element_rect(colour = "black",size=1)) + 
-    theme(axis.ticks.length=unit(0.3,"cm")) + labs(x = "Transect", y = "Rel. Abun. Mycobacteria OTU0113") 
-  
-ggsave("../figures/OTU2496.pdf", plot=last_plot(), device=NULL, path=NULL, scale=1, width=NA, height=NA, dpi=300, limitsize=TRUE)
-
-p <- ggplot(new.data, aes(x=Transect, y=Otu3114, shape=as.factor(Location), color=as.factor(Transect), fill=as.factor(Transect))) + stat_summary(fun.data=mean_cl_boot,size=0.75) + scale_shape_manual(name="Location", values=c(21, 24, 22, 23)) +scale_color_manual(name="Transect", values=c("#33CCFF", "#CCCCCC","#336600"), labels = c("SA","SOURCE","WWWD")) +scale_fill_manual(name="Transect", values=c("#33CCFF", "#CCCCCC","#336600"), labels = c("SA","SOURCE","WWWD"))   
-
-p + theme_bw() + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.line =element_line(colour = "black")) + 
-    theme(axis.title=element_text(vjust=1,size=14,face="bold"),
-          axis.text=element_text(size=14), axis.text.x = element_text(vjust=0.75, 
-          hjust=0.6, size=14), panel.border = element_rect(colour = "black",size=1)) + 
-    theme(axis.ticks.length=unit(0.3,"cm")) + labs(x = "Transect", y = "Rel. Abun. Mycobacteria OTU0113") 
-  
-ggsave("../figures/OTU3114.pdf", plot=last_plot(), device=NULL, path=NULL, scale=1, width=NA, height=NA, dpi=300, limitsize=TRUE)
+          axis.text=element_text(size=14), axis.text.x = element_text(vjust=0.65, hjust=0.5, 
+          size=14), panel.border = element_rect(colour = "black",size=1)) + 
+    theme(axis.ticks.length=unit(0.3,"cm")) + labs(x = "Transect", y = "Rel. Abun. Mycobacteria OTU0113") + 
+    theme(strip.text.x = element_text(size=14, face="bold"), strip.text.y =   
+          element_text(size=14, face="bold"), strip.background = element_rect(colour="black",
+          fill="white", size=1))
+Otu0113
+ggsave("../figures/OTU0113.png", plot=last_plot(), device=NULL, path=NULL, scale=1, width=7, height=5, dpi=300, limitsize=TRUE)
 ```
 
-# Bacterial community indicator species analysis 2013 only - plant
-```{r Bacteria Indicator Species, include=FALSE}
+# Bacterial community indicator species analysis
+```{r Bacteria Indicator Species, echo=TRUE}
 new.data <-cbind(design,dataREL)
 library("labdsv")
 
-design.type <- new.data$Transect
+group = interaction(new.data$Location_ID)
+design.type <- group
 
 dataREL.ind <- dataREL[, colSums(dataREL) > 0.05]
 bac.ind <- indval(dataREL.ind, design.type)
 levels(design.type)
+#"SA"        "SA_EXIT"   "SA_PRE"    "SOURCE"    "WWWD"      "WWWD_EXIT" "WWWD_PRE" 
 summary(bac.ind)
 
 inds <- which(bac.ind$pval <= 0.05)
