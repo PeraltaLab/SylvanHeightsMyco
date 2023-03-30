@@ -22,8 +22,8 @@ Raw amplicon sequence files can be found at NCBI SRA [BioProject].
 
 ## Contributors
 
-[Dustin Foote](dustin@shwpark.com) [(website)](http://www.balalab.com/): PhD Candidate, Department of Biology, East Carolina University & General Curator at [(Sylvan Heights Bird Park)](https://www.shwpark.com/)
+[Dustin Foote](mailto:dustin@shwpark.com): PhD Candidate, Department of Biology, East Carolina University & General Curator at [Sylvan Heights Bird Park](https://www.shwpark.com/)
 
-[Dr. Chris Balakrishnan](balakrishnanc22@ecu.edu) [(website)](http://www.balalab.com/): Adjunct Associate Professor, Department of Biology, East Carolina University
+[Dr. Chris Balakrishnan](mailto:balakrishnanc22@ecu.edu) [(website)](http://www.balalab.com/): Adjunct Associate Professor, Department of Biology, East Carolina University
 
 [Dr. Ariane Peralta](mailto:peraltaa@ecu.edu) [(website)](http://www.peraltalab.com): Associate Professor, Department of Biology, East Carolina University
