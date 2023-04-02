@@ -144,7 +144,9 @@ ggsave("../figures/SH.bacteria.evenness.png", plot=last_plot(), device=NULL, pat
 # evenness anova
 even.lm <- lm(simp.even ~ Location*Transect, data = diversity.nosource)
 summary(even.lm) #NS
-anova(shannon.lm)
+anova(even.lm)
+emmeans(even.lm, pairwise ~ Transect)
+
 ```
 
 # Simple Hypothesis Testing - Microbes
@@ -327,9 +329,10 @@ ggsave("../figures/genuscomp_updated.png", plot=last_plot(), device=NULL, path=N
 #Otu3114 (4 reads)
 
 #not graphing source
-new.data.nosource <- new.data[c(1:16),]
+new.data.nosource <-new.data[c(1:16),]
+str(new.data.nosource)
 p <- ggplot(new.data.nosource, aes(x=Transect, y=Otu0113, color=Location))+ geom_boxplot() +
-      geom_point(aes(color=Location), size=2, position = position_jitterdodge())+ scale_color_manual(name="Location", values=c("gray70", "blue")) 
+      geom_point(aes(color=Location), size=2, position = position_jitterdodge()) + scale_color_manual(name="Location", values=c("gray70", "blue")) 
 p1=p+geom_smooth(method="lm")+facet_wrap(~Location)
 Otu0113<-p1 + theme_bw() + 
     theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.line 
